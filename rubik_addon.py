@@ -41,9 +41,17 @@ def round_vect(vec, digits):
 	return Vector((round(vec[0], digits), round(vec[1], digits), round(vec[2], digits)))
 
 
+def get_children(parent):
+	children = []
+	for obj in bpy.data.objects:
+		if obj.parent == parent:
+			children.append(obj)
+	return children
+
+
 ###############################################################
 # Strategy design pattern #####################################
-class CubeBlockBuilder():
+class CubeBlockBuilder:
 	def __init__(self):
 		pass
 
@@ -190,7 +198,7 @@ class FancyCubeStrategy(PrimitiveCubeStrategy):
 #########################################################
 
 
-class RubikCube():
+class RubikCube:
 	def __init__(self, size, name="RubikCube"):
 		self.size = size
 		bpy.ops.object.empty_add(type='PLAIN_AXES')
@@ -200,7 +208,7 @@ class RubikCube():
 		# In case the name exists it may become sth like RubikCube.001
 		self.parent_object_name = self.parent_object.name
 
-		self.cube_block_builder = FancyCubeStrategy()
+		self.cube_block_builder = PrimitiveCubeStrategy()
 		self._build_cube()
 
 		self.temp_angle = 0
@@ -322,10 +330,16 @@ class RubikCube():
 		num = self.size * len(self.xy_planes[0])
 		return [x_sum / num, y_sum / num, z_sum / num]
 
+	def _update_keyframes(self):
+		bpy.ops.object.select_all(action='SELECT')
+		bpy.context.scene.frame_set(bpy.context.scene.frame_current)
+		bpy.ops.anim.keyframe_insert(type='LocRotScale')
+		bpy.ops.object.select_all(action='DESELECT')
+
 	# Rotate face that contains miniature cube (of cube_name) around the axis
 	def rotate(self, cube_name, axis, degrees=90):
 		dict_items_to_change = {}
-		self._update()
+		self._update_keyframes()
 		self.center_point = self._find_center_point()
 
 		if degrees % 90 == 0:
@@ -434,11 +448,16 @@ class RubikCube():
 		for key in dict_items_to_change:
 			self.locations_dict[key] = dict_items_to_change[key]
 
-	def _update(self):
-		bpy.ops.object.select_all(action='SELECT')
-		bpy.context.scene.frame_set(bpy.context.scene.frame_current)
-		bpy.ops.anim.keyframe_insert(type='LocRotScale')
-		bpy.ops.object.select_all(action='DESELECT')
+	def update(self):
+		obj = bpy.data.objects[self.parent_object_name]
+		cubies = get_children(obj)
+
+		for cube in cubies:
+			loc = cube.location.copy()
+			loc.freeze()
+			self.locations_dict[loc] = cube.name
+
+		print(len(self.locations_dict))
 
 
 # Usage example
@@ -525,7 +544,9 @@ class RC_OT_Rotate(Operator):
 		axis = context.scene.cube_rotate_props.axis_enum
 		cube_to_rotate = context.active_object
 
+		self.rubik_cube_to_rotate.update()
 		self.rubik_cube_to_rotate.rotate(cube_to_rotate.name, axis, angle)
+
 		return {'FINISHED'}
 
 	def invoke(self, context, event):
@@ -536,7 +557,7 @@ class RC_OT_Rotate(Operator):
 		for rubik_cube in all_rubik_cubes:
 			if parent_object.name == rubik_cube.parent_object_name:
 				self.rubik_cube_to_rotate = rubik_cube
-				break;
+				break
 
 		if self.rubik_cube_to_rotate is not None:
 			return self.execute(context)
