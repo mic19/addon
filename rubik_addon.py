@@ -208,8 +208,9 @@ class RubikCube:
 		# In case the name exists it may become sth like RubikCube.001
 		self.parent_object_name = self.parent_object.name
 
-		self.cube_block_builder = PrimitiveCubeStrategy()
+		self.cube_block_builder = FancyCubeStrategy()
 		self._build_cube()
+		self.cube_keyframe = 1
 
 		self.temp_angle = 0
 
@@ -249,8 +250,8 @@ class RubikCube:
 					iter3 += 1
 
 					cube = bpy.context.object
-					cube.name = 'Cube' + str(cube_number)
 					cube.parent = self.parent_object
+					cube.name = cube.parent.name + '.Cube' + str(cube_number)
 					cube_number += 1
 
 					xy_planes[z].append(cube.name)
@@ -320,7 +321,6 @@ class RubikCube:
 		x_sum = 0
 		y_sum = 0
 		z_sum = 0
-
 		for plane in self.xy_planes:
 			for cube_name in plane:
 				x_sum += bpy.data.objects[cube_name].matrix_world.translation.x
@@ -330,9 +330,13 @@ class RubikCube:
 		num = self.size * len(self.xy_planes[0])
 		return [x_sum / num, y_sum / num, z_sum / num]
 
+	def _select_all_elements(self):
+		for obj in get_children(bpy.data.objects[self.parent_object_name]):
+			obj.select_set(True)
+
 	def _update_keyframes(self):
-		bpy.ops.object.select_all(action='SELECT')
-		bpy.context.scene.frame_set(bpy.context.scene.frame_current)
+		self._select_all_elements()
+		bpy.context.scene.frame_set(self.cube_keyframe)
 		bpy.ops.anim.keyframe_insert(type='LocRotScale')
 		bpy.ops.object.select_all(action='DESELECT')
 
@@ -434,11 +438,12 @@ class RubikCube:
 			# TODO: create a method to deal with this rotation
 			pass
 
-		bpy.context.scene.frame_set(current_frame + anim_iters)
+		self.cube_keyframe = current_frame + anim_iters
+		bpy.context.scene.frame_set(self.cube_keyframe)
 		bpy.context.scene.cursor.location = parent_object.location
 		bpy.context.scene.tool_settings.transform_pivot_point = prev_tool_setting
 
-		bpy.ops.object.select_all(action='SELECT')
+		self._select_all_elements()
 		bpy.data.objects[self.parent_object_name].select_set(False)
 		bpy.ops.anim.keyframe_insert(type='BUILTIN_KSI_LocRot')
 
@@ -456,8 +461,6 @@ class RubikCube:
 			loc = cube.location.copy()
 			loc.freeze()
 			self.locations_dict[loc] = cube.name
-
-		print(len(self.locations_dict))
 
 
 # Usage example
