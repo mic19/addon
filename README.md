@@ -4,7 +4,7 @@ Addon allows you to build n-sized Rubik's cube and rotating faces easly. The goa
 
 Quick animation created with the addon:
 
-<img src="https://s5.gifyu.com/images/animationea01af60960bbc4b.gif" border="0" />
+<img src="/example_animation.gif" border="0" />
 
 ## Getting Started
 Script can be run two ways - as addon or standalone script.
@@ -17,5 +17,5 @@ To run standalone script copy content of *rubik_addon.py* to Text Editor inside 
 ## Usage
 Quick video below shows how to use the addon:
 
-<img src="https://s5.gifyu.com/images/usage.gif" border="0" />
+<img src="/example_usage.gif" border="0" />
 
